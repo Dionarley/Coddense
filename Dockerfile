@@ -8,17 +8,12 @@ RUN apk add --no-cache \
     git \
     libpng-dev \
     libzip-dev \
+    sqlite-dev \
     postgresql-dev \
     linux-headers \
     $PHPIZE_DEPS
 
-RUN docker-php-ext-install \
-    pdo \
-    pdo_pgsql \
-    pdo_sqlite \
-    zip \
-    pcntl \
-    opcache
+RUN docker-php-ext-install pdo pdo_pgsql pdo_sqlite zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
