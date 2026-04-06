@@ -1,0 +1,14 @@
+services:
+  # O servidor Web
+  coddense.app:
+    build: .
+    ports: ['80:80']
+    environment:
+      - APP_ENV=production
+  
+  # O Worker (quem realmente trabalha no mapeamento)
+  coddense.worker:
+    build: .
+    command: php artisan horizon
+    environment:
+      - APP_ENV=production
