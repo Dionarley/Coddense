@@ -1,14 +1,82 @@
 services:
-  # O servidor Web
-  coddense.app:
-    build: .
-    ports: ['80:80']
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
     environment:
-      - APP_ENV=production
-  
-  # O Worker (quem realmente trabalha no mapeamento)
-  coddense.worker:
-    build: .
-    command: php artisan horizon
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${APP_KEY}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - DB_CONNECTION=${DB_CONNECTION:-pgsql}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-coddense}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
+      - SESSION_DRIVER=${SESSION_DRIVER:-database}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/var/www/html/storage:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: php artisan queue:work --tries=3 --timeout=0
     environment:
-      - APP_ENV=production
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-coddense}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./storage:/var/www/html/storage:rw
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=${DB_DATABASE:-coddense}
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: php artisan migrate --force
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - migrate
+
+volumes:
+  postgres_data:

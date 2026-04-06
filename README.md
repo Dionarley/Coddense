@@ -14,58 +14,57 @@
 ## Tecnologias
 
 - **Backend**: Laravel 13 + PHP 8.3
-- **Frontend**: Vue 3 + Inertia.js + Tailwind CSS
+- **Frontend**: Vue 3 + Inertia.js + Tailwind CSS v4
 - **Parser**: nikic/php-parser (AST)
-- **Filas**: Laravel Queue
+- **Banco**: PostgreSQL 16
+- **Filas**: Laravel Queue (database)
+- **Infra**: Docker + Docker Compose
 
 ## Instalação
+
+### Com Docker (Recomendado)
 
 ```bash
 # Clonar repositório
 git clone <repo-url>
 cd Coddense
 
-# Instalar dependências PHP
-composer install
+# Copiar .env.docker
+cp .env.docker .env
 
-# Instalar dependências JS
+# Subir todos os serviços
+docker compose up -d postgres
+docker compose run --rm migrate
+docker compose up -d app queue
+
+# Acessar
+open http://localhost:8080
+```
+
+### Manual (Desenvolvimento Local)
+
+```bash
+# Instalar dependências
+composer install
 npm install --legacy-peer-deps
 
-# Copiar arquivo de ambiente
+# Configurar ambiente
 cp .env.example .env
-
-# Gerar chave da aplicação
 php artisan key:generate
 
-# Criar banco de dados SQLite
-touch database/database.sqlite
-
-# Executar migrations
+# Banco de dados (PostgreSQL)
+# Crie o banco 'coddense' antes de rodar as migrations
 php artisan migrate
 
 # Compilar assets
 npm run build
-```
 
-## Uso
-
-### Desenvolvimento
-
-```bash
-# Iniciar servidor de desenvolvimento
+# Iniciar servidor
 php artisan serve
-
-# Em outro terminal, iniciar worker de filas
 php artisan queue:work
 ```
 
-### Produção
-
-```bash
-npm run build
-php artisan serve --host=0.0.0.0 --port=80
-php artisan queue:work --tries=3
-```
+## Uso
 
 ### Adicionar Repositório
 
@@ -73,6 +72,37 @@ php artisan queue:work --tries=3
 2. Clique em "Mapear Novo Repo"
 3. Informe nome e URL do repositório Git
 4. O Coddense clonará e analisará automaticamente
+
+### Docker Compose
+
+```bash
+# Iniciar todos os serviços
+docker compose up -d
+
+# Ver logs
+docker compose logs -f
+
+# Rodar migrations
+docker compose run --rm migrate
+
+# Parar serviços
+docker compose down
+
+# Reconstruir imagem
+docker compose up -d --build app
+```
+
+### Manual
+
+```bash
+# Desenvolvimento (server + queue + logs + vite)
+composer run dev
+
+# Produção
+npm run build
+php artisan serve --host=0.0.0.0 --port=80
+php artisan queue:work --tries=3
+```
 
 ## API Endpoints
 
@@ -88,15 +118,15 @@ php artisan queue:work --tries=3
 
 ```bash
 # Criar repositório
-curl -X POST http://localhost:8000/api/repositories \
+curl -X POST http://localhost:8080/api/repositories \
   -H "Content-Type: application/json" \
   -d '{"name": "Meu Projeto", "remote_url": "https://github.com/user/repo.git"}'
 
 # Listar repositórios
-curl http://localhost:8000/api/repositories
+curl http://localhost:8080/api/repositories
 
 # Ver entidades mapeadas
-curl http://localhost:8000/api/repositories/1/entities
+curl http://localhost:8080/api/repositories/1/entities
 ```
 
 ## Estrutura do Banco

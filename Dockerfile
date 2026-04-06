@@ -1,38 +1,42 @@
-# Estágio 1: Dependências do PHP
-FROM php:8.3-fpm-alpine as vendor
-WORKDIR /var/www/html
-COPY composer.json composer.lock ./
-RUN apk add --no-cache git unzip libpng-dev libzip-dev zip \
-    && docker-php-ext-install pdo_pgsql zip
+FROM php:8.3-fpm-alpine
+
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    bash \
+    curl \
+    git \
+    libpng-dev \
+    libzip-dev \
+    postgresql-dev \
+    linux-headers \
+    $PHPIZE_DEPS
+
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    pdo_sqlite \
+    zip \
+    pcntl \
+    opcache
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+COPY . .
+
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# Estágio 2: Frontend (Assets)
-FROM node:20-alpine as frontend
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install
-COPY . .
-RUN npm run build
+RUN npm install --legacy-peer-deps && npm run build
 
-# Estágio 3: Imagem Final de Produção
-FROM php:8.3-fpm-alpine
-WORKDIR /var/www/html
+RUN chown -R www-data:www-data storage bootstrap/cache public \
+    && chmod -R 775 storage bootstrap/cache public
 
-# Instalar extensões necessárias para o motor do Coddense
-RUN apk add --no-cache libpng libzip libpq \
-    && docker-php-ext-install pdo_pgsql zip
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/supervisord.conf /etc/supervisord.conf
 
-# Copiar app e dependências
-COPY --from=vendor /var/www/html/vendor ./vendor
-COPY --from=frontend /app/public/build ./public/build
-COPY . .
+RUN echo "<?php http_response_code(200); echo 'OK';" > /var/www/html/public/health.php
 
-# Ajustar permissões (Fator VI: Stateless)
-RUN chown -R www-data:www-data storage bootstrap/cache
-
-# Configuração de Logs (Fator XI)
-RUN ln -sf /dev/stderr /var/www/html/storage/logs/laravel.log
-
-EXPOSE 9000
-CMD ["php-fpm"]
+EXPOSE 80
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
