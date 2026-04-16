@@ -2,7 +2,7 @@
 
 ## O que é o Coddense?
 
-Coddense é uma ferramenta de mapeamento de código PHP que analisa repositórios e extrai informações sobre classes, funções, traits e interfaces usando AST (Abstract Syntax Tree).
+Coddense é uma ferramenta de mapeamento de código que analisa repositórios e extrai informações sobre classes, funções, traits, interfaces e mais de múltiplas linguagens usando AST e parsing.
 
 ---
 
@@ -18,8 +18,8 @@ Coddense é uma ferramenta de mapeamento de código PHP que analisa repositório
 
 O Coddense irá:
 - Clonar o repositório
-- Analisar todos os arquivos PHP
-- Extrair classes, funções, traits e interfaces
+- Analisar arquivos de todas as linguagens suportadas
+- Extrair classes, funções, traits, interfaces, tipos, enums
 - Armazenar os dados no banco
 
 ### 2. Mapeando uma Pasta Local
@@ -31,6 +31,17 @@ O Coddense irá:
 5. Clique em **"Mapear"**
 
 **Nota:** O caminho deve ser absoluto e a pasta deve existir.
+
+---
+
+## Linguagens Suportadas
+
+| Linguagem | Extensões | O que é extraído |
+|-----------|------------|------------------|
+| PHP | .php | classes, interfaces, traits, funções |
+| JavaScript | .js, .jsx, .mjs, .cjs | classes, funções |
+| TypeScript | .ts, .tsx | classes, interfaces, types, enums, funções |
+| Python | .py | classes, funções |
 
 ---
 
@@ -161,13 +172,16 @@ docker compose down
 R: Para repositórios Git, sim. Para pastas locais, não.
 
 **P: Quais tipos de arquivos são analisados?**
-R: Apenas arquivos `.php`.
+R: Arquivos .php, .js, .jsx, .ts, .tsx, .py e suas variantes.
 
 **P: Posso mapear qualquer repositório?**
-R: Sim, qualquer repositório público ou URL de Git válida.
+R: Sim, qualquer repositório público ou URL de Git válida, ou pasta local.
 
 **P: Os dados são salvos?**
 R: Sim, no banco de dados (SQLite em desenvolvimento, PostgreSQL em produção).
+
+**P: Como vejo as linguagens detectadas?**
+R: Na página de visualização do repositório, os badges de linguagem aparecem abaixo do nome.
 
 ---
 

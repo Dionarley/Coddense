@@ -1,16 +1,26 @@
 # Coddense
 
-**A sanity way to maintain your codebase.** Coddense é uma interface web para mapeamento de repositórios de código PHP, extraindo classes, funções, traits e interfaces usando AST (Abstract Syntax Tree).
+**A sanity way to maintain your codebase.** Coddense é uma interface web para mapeamento de repositórios de código, extraindo classes, funções, traits e interfaces de múltiplas linguagens usando AST e parsing.
 
 ## Funcionalidades
 
 - **Mapeamento de Repositórios**: Clone e análise automática de repositórios Git
 - **Mapeamento Local**: Análise de pastas locais no sistema de arquivos
-- **Extração de Entidades**: Identifica classes, interfaces, traits e funções
+- **Multi-Linguagem**: Suporte para PHP, JavaScript, TypeScript e Python
+- **Extração de Entidades**: Identifica classes, interfaces, traits, funções, tipos, enums
 - **Detalhes Ricos**: Extrai métodos, propriedades, parâmetros, tipos de retorno e namespaces
 - **Interface Web**: Dashboard SPA com Vue 3 + Inertia.js + Tailwind CSS
 - **Processamento Assíncrono**: Jobs em fila para processar repositórios grandes
 - **API REST**: Endpoints para integração com outras ferramentas
+
+## Linguagens Suportadas
+
+| Linguagem | Extensões | Parser |
+|-----------|-----------|--------|
+| PHP | .php | AST (nikic/php-parser) |
+| JavaScript | .js, .jsx, .mjs, .cjs | Regex |
+| TypeScript | .ts, .tsx | Regex |
+| Python | .py | Regex |
 
 ## Tecnologias
 
@@ -137,8 +147,9 @@ curl http://localhost:8080/api/repositories/1/entities
 |-------|------|-----------|
 | id | bigint | ID único |
 | name | string | Nome do repositório |
-| remote_url | string | URL do repositório Git |
+| remote_url | string | URL do repositório Git ou caminho local |
 | status | string | pending, processing, completed, failed |
+| languages | json | Array de linguagens detectadas |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
 
@@ -147,10 +158,11 @@ curl http://localhost:8080/api/repositories/1/entities
 |-------|------|-----------|
 | id | bigint | ID único |
 | repository_id | bigint | FK para repositories |
-| type | string | class, function, trait, interface |
+| type | string | class, function, trait, interface, type, enum |
 | name | string | Nome da entidade |
-| namespace | string | Namespace PHP (nullable) |
+| namespace | string | Namespace (PHP) ou null |
 | file_path | string | Caminho do arquivo |
+| language | string | PHP, JavaScript, TypeScript, Python |
 | details | json | Métodos, propriedades, parâmetros |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
