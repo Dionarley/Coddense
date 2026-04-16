@@ -5,6 +5,7 @@
 ## Funcionalidades
 
 - **Mapeamento de Repositórios**: Clone e análise automática de repositórios Git
+- **Mapeamento Local**: Análise de pastas locais no sistema de arquivos
 - **Extração de Entidades**: Identifica classes, interfaces, traits e funções
 - **Detalhes Ricos**: Extrai métodos, propriedades, parâmetros, tipos de retorno e namespaces
 - **Interface Web**: Dashboard SPA com Vue 3 + Inertia.js + Tailwind CSS
@@ -159,6 +160,11 @@ curl http://localhost:8080/api/repositories/1/entities
 ```bash
 php artisan test
 ```
+
+## Documentação
+
+- [Ajuda do Usuário](./docs/help.md) - Guia completo de uso
+- [AGENTS.md](./AGENTS.md) - Guia para desenvolvedores
 
 ## Licença
 
