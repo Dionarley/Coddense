@@ -11,11 +11,13 @@ class Repository extends Model
         'name',
         'remote_url',
         'status',
+        'languages',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'languages' => 'array',
     ];
 
     public function codeEntities(): HasMany

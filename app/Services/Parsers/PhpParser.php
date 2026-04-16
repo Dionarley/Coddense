@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Parsers;
 
 use PhpParser\Error;
 use PhpParser\Node\Stmt\Class_;
@@ -11,8 +11,18 @@ use PhpParser\Node\Stmt\Trait_;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 
-class CodeParserService
+class PhpParser implements LanguageParserInterface
 {
+    public function getSupportedExtensions(): array
+    {
+        return ['php'];
+    }
+
+    public function getLanguageName(): string
+    {
+        return 'PHP';
+    }
+
     public function parseFile(string $filePath): array
     {
         $code = file_get_contents($filePath);
@@ -27,65 +37,93 @@ class CodeParserService
 
             $classes = $nodeFinder->findInstanceOf($ast, Class_::class);
             foreach ($classes as $class) {
-                $entities[] = [
-                    'type' => 'class',
-                    'name' => (string) $class->name,
-                    'namespace' => $namespace,
-                    'file_path' => $filePath,
-                    'details' => [
-                        'extends' => $class->extends ? $this->nodeToString($class->extends) : null,
-                        'implements' => $class->implements ? array_map(fn ($i) => $this->nodeToString($i), $class->implements) : [],
-                        'methods' => $this->extractMethods($class),
-                        'properties' => $this->extractProperties($class),
-                    ],
-                ];
+                $entities[] = $this->extractClassData($class, $namespace, $filePath);
             }
 
             $traits = $nodeFinder->findInstanceOf($ast, Trait_::class);
             foreach ($traits as $trait) {
-                $entities[] = [
-                    'type' => 'trait',
-                    'name' => (string) $trait->name,
-                    'namespace' => $namespace,
-                    'file_path' => $filePath,
-                    'details' => [
-                        'methods' => $this->extractMethods($trait),
-                        'properties' => $this->extractProperties($trait),
-                    ],
-                ];
+                $entities[] = $this->extractTraitData($trait, $namespace, $filePath);
             }
 
             $interfaces = $nodeFinder->findInstanceOf($ast, Interface_::class);
             foreach ($interfaces as $interface) {
-                $entities[] = [
-                    'type' => 'interface',
-                    'name' => (string) $interface->name,
-                    'namespace' => $namespace,
-                    'file_path' => $filePath,
-                    'details' => [
-                        'extends' => $interface->extends ? array_map(fn ($e) => $this->nodeToString($e), $interface->extends) : [],
-                        'methods' => $this->extractMethods($interface),
-                    ],
-                ];
+                $entities[] = $this->extractInterfaceData($interface, $namespace, $filePath);
             }
 
             $functions = $nodeFinder->findInstanceOf($ast, Function_::class);
             foreach ($functions as $function) {
-                $entities[] = [
-                    'type' => 'function',
-                    'name' => (string) $function->name,
-                    'namespace' => null,
-                    'file_path' => $filePath,
-                    'details' => [
-                        'params' => $this->extractParams($function),
-                    ],
-                ];
+                $entities[] = $this->extractFunctionData($function, $filePath);
             }
 
             return $entities;
         } catch (Error $error) {
             return [];
         }
+    }
+
+    private function getNamespace($ast): ?string
+    {
+        $nodeFinder = new NodeFinder;
+        $ns = $nodeFinder->findFirstInstanceOf($ast, Namespace_::class);
+
+        return $ns ? (string) $ns->name : null;
+    }
+
+    private function extractClassData(Class_ $class, ?string $namespace, string $filePath): array
+    {
+        return [
+            'type' => 'class',
+            'name' => (string) $class->name,
+            'namespace' => $namespace,
+            'file_path' => $filePath,
+            'details' => [
+                'extends' => $class->extends ? $this->nodeToString($class->extends) : null,
+                'implements' => $class->implements ? array_map(fn ($i) => $this->nodeToString($i), $class->implements) : [],
+                'methods' => $this->extractMethods($class),
+                'properties' => $this->extractProperties($class),
+            ],
+        ];
+    }
+
+    private function extractTraitData(Trait_ $trait, ?string $namespace, string $filePath): array
+    {
+        return [
+            'type' => 'trait',
+            'name' => (string) $trait->name,
+            'namespace' => $namespace,
+            'file_path' => $filePath,
+            'details' => [
+                'methods' => $this->extractMethods($trait),
+                'properties' => $this->extractProperties($trait),
+            ],
+        ];
+    }
+
+    private function extractInterfaceData(Interface_ $interface, ?string $namespace, string $filePath): array
+    {
+        return [
+            'type' => 'interface',
+            'name' => (string) $interface->name,
+            'namespace' => $namespace,
+            'file_path' => $filePath,
+            'details' => [
+                'extends' => $interface->extends ? array_map(fn ($e) => $this->nodeToString($e), $interface->extends) : [],
+                'methods' => $this->extractMethods($interface),
+            ],
+        ];
+    }
+
+    private function extractFunctionData(Function_ $function, string $filePath): array
+    {
+        return [
+            'type' => 'function',
+            'name' => (string) $function->name,
+            'namespace' => null,
+            'file_path' => $filePath,
+            'details' => [
+                'params' => $this->extractParams($function),
+            ],
+        ];
     }
 
     private function nodeToString($node): string
@@ -103,14 +141,6 @@ class CodeParserService
         }
 
         return get_class($node);
-    }
-
-    private function getNamespace($ast): ?string
-    {
-        $nodeFinder = new NodeFinder;
-        $ns = $nodeFinder->findFirstInstanceOf($ast, Namespace_::class);
-
-        return $ns ? (string) $ns->name : null;
     }
 
     private function extractMethods($node): array

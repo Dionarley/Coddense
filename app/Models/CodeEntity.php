@@ -13,6 +13,7 @@ class CodeEntity extends Model
         'name',
         'namespace',
         'file_path',
+        'language',
         'details',
     ];
 

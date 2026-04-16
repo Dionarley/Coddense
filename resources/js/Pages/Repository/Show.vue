@@ -10,6 +10,11 @@
                 </Link>
                 <h1 class="text-lg font-bold text-slate-900">{{ repository.name }}</h1>
                 <p class="text-xs text-slate-500 truncate">{{ repository.remote_url }}</p>
+                <div v-if="repository.languages" class="flex gap-1 mt-2">
+                    <span v-for="lang in repository.languages" :key="lang" class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {{ lang }}
+                    </span>
+                </div>
             </div>
 
             <input v-model="search" type="text" placeholder="Filtrar classes/funções..." class="w-full mb-4 border-slate-200 rounded-lg text-sm p-2" />
@@ -45,6 +50,9 @@
             <div v-if="selectedEntity" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-4xl">
                 <div class="flex items-center gap-3 mb-4">
                     <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs font-mono">{{ selectedEntity.type }}</span>
+                    <span v-if="selectedEntity.language" class="bg-purple-100 text-purple-600 px-2 py-1 rounded text-xs font-mono">
+                        {{ selectedEntity.language }}
+                    </span>
                     <h2 class="text-2xl font-bold tracking-tight">{{ selectedEntity.name }}</h2>
                 </div>
                 <p class="text-slate-500 font-mono text-sm mb-6">{{ selectedEntity.file_path }}</p>

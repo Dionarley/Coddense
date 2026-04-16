@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Repository;
-use App\Services\CodeParserService;
+use App\Services\ParserFactory;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,7 +26,7 @@ class ProcessRepositoryJob implements ShouldQueue
         public int $repositoryId
     ) {}
 
-    public function handle(CodeParserService $parser): void
+    public function handle(ParserFactory $parserFactory): void
     {
         $repository = Repository::find($this->repositoryId);
 
@@ -45,7 +45,7 @@ class ProcessRepositoryJob implements ShouldQueue
             if (! $isLocal) {
                 $this->cloneRepository($repository, $tempPath);
             }
-            $this->parseAndStoreEntities($repository, $tempPath, $parser);
+            $this->parseAndStoreEntities($repository, $tempPath, $parserFactory);
             $repository->update(['status' => 'completed']);
         } catch (\Throwable $e) {
             Log::error('Repository processing failed', [
@@ -81,32 +81,56 @@ class ProcessRepositoryJob implements ShouldQueue
         }
     }
 
-    private function parseAndStoreEntities(Repository $repository, string $tempPath, CodeParserService $parser): void
+    private function parseAndStoreEntities(Repository $repository, string $tempPath, ParserFactory $parserFactory): void
     {
+        $excludeDirs = ['node_modules', 'vendor', 'storage', 'public', 'bootstrap/cache', '.git'];
+
         $files = File::allFiles($tempPath);
+        $languages = [];
 
         foreach ($files as $file) {
-            if ($file->getExtension() === 'php') {
-                $entities = $parser->parseFile($file->getRealPath());
+            $relativePath = $file->getRelativePathname();
+
+            foreach ($excludeDirs as $exclude) {
+                if (str_starts_with($relativePath, $exclude)) {
+                    continue 2;
+                }
+            }
+
+            $entities = $parserFactory->parseFile($file->getRealPath());
+
+            if (! empty($entities)) {
+                $language = $this->detectLanguage($file->getExtension());
 
                 foreach ($entities as $entity) {
                     $repository->codeEntities()->create([
                         'type' => $entity['type'],
                         'name' => $entity['name'],
                         'namespace' => $entity['namespace'] ?? null,
-                        'file_path' => $file->getRelativePathname(),
+                        'file_path' => $relativePath,
+                        'language' => $language,
                         'details' => $entity['details'] ?? null,
                     ]);
+
+                    $languages[$language] = true;
                 }
             }
         }
+
+        if (! empty($languages)) {
+            $repository->update(['languages' => array_keys($languages)]);
+        }
     }
 
-    private function cleanup(string $tempPath): void
+    private function detectLanguage(string $extension): string
     {
-        if (File::isDirectory($tempPath)) {
-            File::deleteDirectory($tempPath);
-        }
+        return match ($extension) {
+            'php' => 'PHP',
+            'js', 'jsx', 'mjs', 'cjs' => 'JavaScript',
+            'ts', 'tsx' => 'TypeScript',
+            'py' => 'Python',
+            default => 'Unknown',
+        };
     }
 
     public function failed(\Throwable $exception): void
