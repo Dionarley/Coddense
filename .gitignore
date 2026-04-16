@@ -3,7 +3,7 @@
 .env
 .env.backup
 .env.production
-.phpactor.json
+.env.docker
 .phpunit.result.cache
 /.fleet
 /.idea
@@ -25,3 +25,4 @@ Homestead.yaml
 Thumbs.db
 /plan.md
 /plan.txt
+/scripts/coddense
