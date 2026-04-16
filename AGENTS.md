@@ -7,10 +7,30 @@ Coddense é uma aplicação Laravel para mapeamento de repositórios PHP usando 
 - PHP 8.3+ / Laravel 13
 - Vue 3 + Inertia.js + Tailwind CSS v4
 - nikic/php-parser para AST
+- Docker + Docker Compose (produção)
+- PostgreSQL 16 (Docker) / SQLite (desenvolvimento)
 
 ---
 
 ## Comandos de Build/Lint/Test
+
+### Docker
+```bash
+# Subir todos os serviços
+docker compose up -d
+
+# Ver logs
+docker compose logs -f
+
+# Reconstruir imagem
+docker compose up -d --build app
+
+# Rodar migrations
+docker compose run --rm migrate
+
+# Parar serviços
+docker compose down
+```
 
 ### PHP/Laravel
 ```bash
@@ -23,8 +43,11 @@ php artisan test --testsuite=Unit
 # Teste específico (feature)
 php artisan test --testsuite=Feature
 
+# Teste específico (Docker)
+php artisan test --testsuite=Docker
+
 # Teste único
-php artisan test --filter=RepositoryTest
+php artisan test --filter=ProcessRepositoryJob
 
 # PHPUnit direto
 ./vendor/bin/phpunit --filter=test_repository_creation
@@ -69,11 +92,24 @@ use PhpParser\NodeFinder;
 use Countable, ArrayIterator;
 ```
 
+### Classes e Métodos
+```php
+// PascalCase para classes
+class RepositoryController extends Controller
+{
+    // camelCase para métodos
+    public function index(): \Illuminate\Http\Response
+    {
+        // código
+    }
+}
+```
+
 ### Tipos e Type Hints
 - Sempre usar tipos explícitos em métodos públicos
 - Union types: `int|string`
 - Nullable: `?string` ou `string|null`
-- Retornar `void` quando não há retorno
+- Return type: `void` quando não há retorno
 
 ### Tratamento de Erros
 ```php
@@ -89,6 +125,13 @@ try {
 - Usar `public int $repositoryId` ao invés de `Repository $repository`
 - Sempre usar `escapeshellarg()` em comandos shell
 - Implementar `failed()` para marcar status
+
+### Naming Conventions
+- Variáveis: `$repositoryId` (camelCase)
+- Constantes: `MAX_RETRY_COUNT` (SCREAMING_SNAKE_CASE)
+- Métodos: `processRepository()` (camelCase)
+- Classes: `CodeParserService` (PascalCase)
+- Arquivos: `CodeParserService.php` (PascalCase)
 
 ---
 
@@ -130,6 +173,14 @@ resources/js/
 tests/
 ├── Feature/          # Feature tests
 ├── Unit/             # Unit tests
+├── Docker/           # Docker tests
+docker/
+├── nginx.conf       # Nginx config
+├── supervisord.conf # Process manager
+├── migrations/    # SQL migration data
+scripts/
+├── migrate_sqlite_to_pgsql.sh
+├── import_to_pgsql.sh
 ```
 
 ---
@@ -147,3 +198,13 @@ tests/
 ### Jobs
 - Sempre usar ID ao invés de modelo serializado
 - Manter jobs idempotentes quando possível
+
+### Docker (Produção)
+- Usar PostgreSQL 16 Alpine
+- Health checks em todos os serviços
+- Profiles para migrations
+
+### Segurança
+- Nunca expor chaves (APP_KEY, DB_PASSWORD) em código
+- Usar variáveis de ambiente
+- .env sempre no .gitignore
