@@ -11,6 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Symfony\Component\Finder\Finder;
 
 class ProcessRepositoryJob implements ShouldQueue
 {
@@ -83,21 +84,29 @@ class ProcessRepositoryJob implements ShouldQueue
 
     private function parseAndStoreEntities(Repository $repository, string $tempPath, ParserFactory $parserFactory): void
     {
-        $excludeDirs = ['node_modules', 'vendor', 'storage', 'public', 'bootstrap/cache', '.git'];
-
-        $files = File::allFiles($tempPath);
-        $languages = [];
-
-        foreach ($files as $file) {
-            $relativePath = $file->getRelativePathname();
-
-            foreach ($excludeDirs as $exclude) {
-                if (str_starts_with($relativePath, $exclude)) {
-                    continue 2;
+        $finder = new Finder;
+        $finder->files()
+            ->in($tempPath)
+            ->exclude(['node_modules', 'vendor', 'storage', 'public', 'bootstrap', 'cache', 'logs', 'tests', 'database', '.git', 'config', 'resources'])
+            ->name('/\.(php|js|jsx|ts|tsx|py|rb|rs|java|cpp|cc|cxx|c|h|hpp|hh|jsp|erb|rake)$/')
+            ->filter(function (\SplFileInfo $file) {
+                $path = $file->getRelativePathname();
+                foreach (['node_modules', 'vendor', 'storage', '.git', 'bootstrap/cache'] as $exclude) {
+                    if (str_contains($path, $exclude)) {
+                        return false;
+                    }
                 }
-            }
 
-            $entities = $parserFactory->parseFile($file->getRealPath());
+                return true;
+            });
+
+        $languages = [];
+        $fileCount = 0;
+
+        foreach ($finder as $file) {
+            $fileCount++;
+
+            $entities = $parserFactory->parseFile($file->getPathname());
 
             if (! empty($entities)) {
                 $language = $this->detectLanguage($file->getExtension());
@@ -107,7 +116,7 @@ class ProcessRepositoryJob implements ShouldQueue
                         'type' => $entity['type'],
                         'name' => $entity['name'],
                         'namespace' => $entity['namespace'] ?? null,
-                        'file_path' => $relativePath,
+                        'file_path' => $file->getRelativePathname(),
                         'language' => $language,
                         'details' => $entity['details'] ?? null,
                     ]);
@@ -115,7 +124,13 @@ class ProcessRepositoryJob implements ShouldQueue
                     $languages[$language] = true;
                 }
             }
+
+            if ($fileCount % 100 === 0) {
+                Log::info("Processed {$fileCount} files...");
+            }
         }
+
+        Log::info("Total files processed: {$fileCount}");
 
         if (! empty($languages)) {
             $repository->update(['languages' => array_keys($languages)]);
@@ -129,6 +144,10 @@ class ProcessRepositoryJob implements ShouldQueue
             'js', 'jsx', 'mjs', 'cjs' => 'JavaScript',
             'ts', 'tsx' => 'TypeScript',
             'py' => 'Python',
+            'rb', 'erb', 'rake' => 'Ruby',
+            'cpp', 'cc', 'cxx', 'c', 'h', 'hpp', 'hh' => 'C/C++',
+            'java', 'jsp' => 'Java',
+            'rs' => 'Rust',
             default => 'Unknown',
         };
     }

@@ -2,10 +2,14 @@
 
 namespace App\Services;
 
+use App\Services\Parsers\CppParser;
+use App\Services\Parsers\JavaParser;
 use App\Services\Parsers\JavaScriptParser;
 use App\Services\Parsers\LanguageParserInterface;
 use App\Services\Parsers\PhpParser;
 use App\Services\Parsers\PythonParser;
+use App\Services\Parsers\RubyParser;
+use App\Services\Parsers\RustParser;
 use App\Services\Parsers\TypeScriptParser;
 
 class ParserFactory
@@ -23,6 +27,10 @@ class ParserFactory
         $this->register(new JavaScriptParser);
         $this->register(new TypeScriptParser);
         $this->register(new PythonParser);
+        $this->register(new RubyParser);
+        $this->register(new CppParser);
+        $this->register(new JavaParser);
+        $this->register(new RustParser);
     }
 
     public function register(LanguageParserInterface $parser): void
