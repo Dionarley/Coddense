@@ -22,6 +22,15 @@ class RepositoryController extends Controller
             'remote_url' => 'required|string|max:500',
         ]);
 
+        $url = $validated['remote_url'];
+        $isLocalPath = ! preg_match('/^(http|https|git@)/', $url);
+
+        if ($isLocalPath && ! is_dir($url)) {
+            return redirect()->back()
+                ->withErrors(['remote_url' => 'O diretório local não existe: '.$url])
+                ->withInput();
+        }
+
         $repo = Repository::create($validated);
         ProcessRepositoryJob::dispatch($repo->id);
 

@@ -37,10 +37,14 @@ class ProcessRepositoryJob implements ShouldQueue
         }
 
         $repository->update(['status' => 'processing']);
-        $tempPath = storage_path("app/temp/{$repository->id}");
+        $url = $repository->remote_url;
+        $isLocal = ! Str::startsWith($url, ['http://', 'https://', 'git@']);
+        $tempPath = $isLocal ? $url : storage_path("app/temp/{$repository->id}");
 
         try {
-            $this->cloneRepository($repository, $tempPath);
+            if (! $isLocal) {
+                $this->cloneRepository($repository, $tempPath);
+            }
             $this->parseAndStoreEntities($repository, $tempPath, $parser);
             $repository->update(['status' => 'completed']);
         } catch (\Throwable $e) {
@@ -51,24 +55,29 @@ class ProcessRepositoryJob implements ShouldQueue
             $repository->update(['status' => 'failed']);
             throw $e;
         } finally {
-            $this->cleanup($tempPath);
+            if (! $isLocal && File::isDirectory($tempPath)) {
+                File::deleteDirectory($tempPath);
+            }
         }
     }
 
     private function cloneRepository(Repository $repository, string $tempPath): void
     {
-        File::makeDirectory($tempPath, 0755, true);
+        $url = $repository->remote_url;
 
-        if (Str::startsWith($repository->remote_url, ['http://', 'https://', 'git@'])) {
+        if (Str::startsWith($url, ['http://', 'https://', 'git@'])) {
+            File::makeDirectory($tempPath, 0755, true);
             $output = [];
             $exitCode = null;
-            exec('git clone --depth 1 '.escapeshellarg($repository->remote_url).' '.escapeshellarg($tempPath).' 2>&1', $output, $exitCode);
+            exec('git clone --depth 1 '.escapeshellarg($url).' '.escapeshellarg($tempPath).' 2>&1', $output, $exitCode);
 
             if ($exitCode !== 0) {
                 throw new \RuntimeException('Git clone failed: '.implode("\n", $output));
             }
+        } elseif (File::isDirectory($url)) {
+            File::copyDirectory($url, $tempPath);
         } else {
-            File::copyDirectory($repository->remote_url, $tempPath);
+            throw new \RuntimeException('Invalid source path: '.$url);
         }
     }
 

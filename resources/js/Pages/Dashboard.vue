@@ -22,6 +22,7 @@
                     <div>
                         <h2 class="font-semibold text-lg text-slate-900">{{ repo.name }}</h2>
                         <p class="text-sm text-slate-500 truncate max-w-[200px]">{{ repo.remote_url }}</p>
+                        <span v-if="isLocalPath(repo.remote_url)" class="text-xs text-blue-600">📁 Local</span>
                     </div>
                     <button @click="deleteRepo(repo.id)" class="text-slate-400 hover:text-red-500 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,10 +49,31 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1">Nome</label>
                         <input v-model="form.name" type="text" required class="w-full border-slate-200 rounded-lg text-sm" placeholder="Meu Projeto">
                     </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">URL do Repositório</label>
-                        <input v-model="form.remote_url" type="text" required class="w-full border-slate-200 rounded-lg text-sm" placeholder="https://github.com/user/repo.git">
+                    
+                    <div class="mb-4">
+                        <div class="flex gap-4 mb-2">
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" v-model="form.source_type" value="git" class="text-blue-600">
+                                Repositório Git
+                            </label>
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="radio" v-model="form.source_type" value="local" class="text-blue-600">
+                                Pasta Local
+                            </label>
+                        </div>
+                        
+                        <input 
+                            v-model="form.remote_url" 
+                            type="text" 
+                            required 
+                            class="w-full border-slate-200 rounded-lg text-sm"
+                            :placeholder="form.source_type === 'git' ? 'https://github.com/user/repo.git' : '/home/user/projeto/src'"
+                        >
+                        <p v-if="form.source_type === 'local'" class="text-xs text-slate-500 mt-1">
+                            Digite o caminho absoluto da pasta com arquivos PHP
+                        </p>
                     </div>
+                    
                     <div class="flex gap-3">
                         <button type="button" @click="showModal = false" class="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">
                             Cancelar
@@ -79,7 +101,12 @@ const showModal = ref(false);
 const form = reactive({
     name: '',
     remote_url: '',
+    source_type: 'git',
 });
+
+const isLocalPath = (url) => {
+    return !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('git@');
+};
 
 const submitRepo = () => {
     router.post('/repositories', form, {
@@ -87,6 +114,7 @@ const submitRepo = () => {
             showModal.value = false;
             form.name = '';
             form.remote_url = '';
+            form.source_type = 'git';
         },
     });
 };
