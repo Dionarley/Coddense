@@ -38,7 +38,10 @@
                             class="text-sm p-2 rounded cursor-pointer hover:bg-blue-50 text-slate-700"
                             :class="{ 'bg-blue-100': selectedEntity?.id === entity.id }"
                             @click="selectedEntity = entity">
-                            <span class="font-medium">{{ entity.name }}</span>
+                            <span class="flex items-center gap-2">
+                                <span class="font-medium">{{ entity.name }}</span>
+                                <span v-if="entity.vulnerabilities?.length" class="inline-block w-2 h-2 rounded-full bg-red-500" title="Possui vulnerabilidades"></span>
+                            </span>
                             <span class="block text-xs text-slate-400 truncate">{{ entity.file_path }}</span>
                         </li>
                     </ul>
@@ -96,6 +99,36 @@
                                 </span>
                                 <span v-if="prop.type" class="text-slate-400 text-xs mr-2">{{ prop.type }}</span>
                                 <span class="font-mono text-sm">${{ prop.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="selectedEntity.vulnerabilities?.length" class="border-t pt-6">
+                        <h4 class="text-sm font-semibold text-red-600 mb-2">Vulnerabilidades ({{ selectedEntity.vulnerabilities.length }})</h4>
+                        <div class="space-y-2">
+                            <div v-for="(vuln, idx) in selectedEntity.vulnerabilities" :key="idx" 
+                                class="p-3 rounded-lg border"
+                                :class="{
+                                    'bg-red-50 border-red-200': vuln.severity === 'CRITICAL',
+                                    'bg-orange-50 border-orange-200': vuln.severity === 'HIGH',
+                                    'bg-yellow-50 border-yellow-200': vuln.severity === 'MEDIUM',
+                                    'bg-slate-50 border-slate-200': vuln.severity === 'LOW'
+                                }">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs px-1.5 py-0.5 rounded font-bold"
+                                        :class="{
+                                            'bg-red-600 text-white': vuln.severity === 'CRITICAL',
+                                            'bg-orange-500 text-white': vuln.severity === 'HIGH',
+                                            'bg-yellow-400 text-slate-800': vuln.severity === 'MEDIUM',
+                                            'bg-slate-400 text-white': vuln.severity === 'LOW'
+                                        }">
+                                        {{ vuln.severity }}
+                                    </span>
+                                    <span class="text-sm font-medium text-slate-700">{{ vuln.type }}</span>
+                                    <span v-if="vuln.cwe_id" class="text-xs text-slate-400">CWE-{{ vuln.cwe_id }}</span>
+                                </div>
+                                <p v-if="vuln.line" class="text-xs text-slate-500">Linha {{ vuln.line }}</p>
+                                <code v-if="vuln.code" class="block mt-1 text-xs bg-white p-1 rounded border text-slate-600 overflow-x-auto">{{ vuln.code }}</code>
                             </div>
                         </div>
                     </div>

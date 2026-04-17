@@ -15,10 +15,12 @@ class CodeEntity extends Model
         'file_path',
         'language',
         'details',
+        'vulnerabilities',
     ];
 
     protected $casts = [
         'details' => 'array',
+        'vulnerabilities' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

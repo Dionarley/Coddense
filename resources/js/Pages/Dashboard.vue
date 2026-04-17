@@ -7,6 +7,31 @@
             </button>
         </header>
 
+        <div v-if="stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <p class="text-xs text-slate-500 uppercase tracking-wide">Repositórios</p>
+                <p class="text-2xl font-bold text-slate-900">{{ stats.total_repositories }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <p class="text-xs text-slate-500 uppercase tracking-wide">Entidades</p>
+                <p class="text-2xl font-bold text-slate-900">{{ stats.total_entities }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <p class="text-xs text-slate-500 uppercase tracking-wide">Linguagens</p>
+                <p class="text-2xl font-bold text-slate-900">{{ Object.keys(stats.entities_by_language || {}).length }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm" :class="stats.vuln_count > 0 ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'">
+                <p class="text-xs uppercase tracking-wide" :class="stats.vuln_count > 0 ? 'text-red-600' : 'text-green-600'">Vulnerabilidades</p>
+                <p class="text-2xl font-bold" :class="stats.vuln_count > 0 ? 'text-red-700' : 'text-green-700'">{{ stats.vuln_count }}</p>
+            </div>
+        </div>
+
+        <div v-if="Object.keys(stats?.entities_by_language || {}).length > 0" class="mb-6 flex gap-2 flex-wrap">
+            <span v-for="(count, lang) in stats.entities_by_language" :key="lang" class="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600">
+                {{ lang }}: {{ count }}
+            </span>
+        </div>
+
         <div v-if="$page.props.flash?.success" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
             {{ $page.props.flash.success }}
         </div>
@@ -95,6 +120,7 @@ import { Link, router } from '@inertiajs/vue3';
 const props = defineProps({
     repositories: Array,
     flash: Object,
+    stats: Object,
 });
 
 const showModal = ref(false);

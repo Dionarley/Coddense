@@ -102,14 +102,22 @@ class ProcessRepositoryJob implements ShouldQueue
 
         $languages = [];
         $fileCount = 0;
+        $scanner = new VulnerabilityScanner;
 
         foreach ($finder as $file) {
             $fileCount++;
 
+            $vulnerabilities = [];
+            $extension = $file->getExtension();
+
+            if (in_array($extension, ['php'])) {
+                $vulnerabilities = $scanner->scan($file->getPathname());
+            }
+
             $entities = $parserFactory->parseFile($file->getPathname());
 
             if (! empty($entities)) {
-                $language = $this->detectLanguage($file->getExtension());
+                $language = $this->detectLanguage($extension);
 
                 foreach ($entities as $entity) {
                     $repository->codeEntities()->create([
@@ -119,6 +127,7 @@ class ProcessRepositoryJob implements ShouldQueue
                         'file_path' => $file->getRelativePathname(),
                         'language' => $language,
                         'details' => $entity['details'] ?? null,
+                        'vulnerabilities' => empty($vulnerabilities) ? null : $vulnerabilities,
                     ]);
 
                     $languages[$language] = true;

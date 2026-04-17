@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessRepositoryJob;
+use App\Models\CodeEntity;
 use App\Models\Repository;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,22 @@ class RepositoryController extends Controller
     {
         $repositories = Repository::latest()->get();
 
-        return inertia('Dashboard', ['repositories' => $repositories]);
+        $stats = [
+            'total_repositories' => Repository::count(),
+            'total_entities' => CodeEntity::count(),
+            'entities_by_language' => CodeEntity::selectRaw('language, count(*) as count')
+                ->whereNotNull('language')
+                ->groupBy('language')
+                ->pluck('count', 'language'),
+            'vuln_count' => CodeEntity::whereNotNull('vulnerabilities')
+                ->where('vulnerabilities', '!=', '[]')
+                ->count(),
+        ];
+
+        return inertia('Dashboard', [
+            'repositories' => $repositories,
+            'stats' => $stats,
+        ]);
     }
 
     public function store(Request $request)
