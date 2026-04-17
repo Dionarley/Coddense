@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Repository;
 use App\Services\ParserFactory;
+use App\Services\TechnicalDebtScanner;
 use App\Services\VulnerabilityScanner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -103,16 +104,19 @@ class ProcessRepositoryJob implements ShouldQueue
 
         $languages = [];
         $fileCount = 0;
-        $scanner = new VulnerabilityScanner;
+        $vulnScanner = new VulnerabilityScanner;
+        $debtScanner = new TechnicalDebtScanner;
 
         foreach ($finder as $file) {
             $fileCount++;
 
             $vulnerabilities = [];
+            $technicalDebt = [];
             $extension = $file->getExtension();
 
             if (in_array($extension, ['php'])) {
-                $vulnerabilities = $scanner->scan($file->getPathname());
+                $vulnerabilities = $vulnScanner->scan($file->getPathname());
+                $technicalDebt = $debtScanner->scan($file->getPathname());
             }
 
             $entities = $parserFactory->parseFile($file->getPathname());
@@ -129,6 +133,7 @@ class ProcessRepositoryJob implements ShouldQueue
                         'language' => $language,
                         'details' => $entity['details'] ?? null,
                         'vulnerabilities' => empty($vulnerabilities) ? null : $vulnerabilities,
+                        'technical_debt' => empty($technicalDebt) ? null : $technicalDebt,
                     ]);
 
                     $languages[$language] = true;

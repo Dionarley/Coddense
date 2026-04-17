@@ -16,11 +16,13 @@ class CodeEntity extends Model
         'language',
         'details',
         'vulnerabilities',
+        'technical_debt',
     ];
 
     protected $casts = [
         'details' => 'array',
         'vulnerabilities' => 'array',
+        'technical_debt' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

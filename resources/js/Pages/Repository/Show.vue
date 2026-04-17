@@ -46,9 +46,10 @@
                 </button>
             </div>
 
-            <div class="text-xs text-slate-400 mb-2 flex justify-between">
+            <div class="text-xs text-slate-400 mb-2 flex justify-between gap-2">
                 <span>{{ filteredEntities.length }} entidades</span>
                 <span v-if="vulnCount > 0" class="text-red-500">⚠️ {{ vulnCount }} vuln</span>
+                <span v-if="debtCount > 0" class="text-orange-500">📋 {{ debtCount }} debt</span>
             </div>
 
             <div class="flex-1 overflow-y-auto">
@@ -65,6 +66,7 @@
                             <span class="flex items-center gap-2">
                                 <span class="font-medium truncate">{{ entity.name }}</span>
                                 <span v-if="entity.vulnerabilities?.length" class="shrink-0 inline-block w-2 h-2 rounded-full bg-red-500" title="Possui vulnerabilidades"></span>
+                                <span v-else-if="entity.technical_debt?.length" class="shrink-0 inline-block w-2 h-2 rounded-full bg-orange-400" title="Possui débitos técnicos"></span>
                             </span>
                             <span class="block text-xs text-slate-400 truncate">{{ entity.file_path }}</span>
                         </li>
@@ -85,6 +87,9 @@
                     </span>
                     <span v-if="selectedEntity.vulnerabilities?.length" class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">
                         ⚠️ {{ selectedEntity.vulnerabilities.length }} vuln
+                    </span>
+                    <span v-if="selectedEntity.technical_debt?.length" class="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold">
+                        📋 {{ selectedEntity.technical_debt.length }} debt
                     </span>
                 </div>
                 <h2 class="text-2xl font-bold tracking-tight mb-2">{{ selectedEntity.name }}</h2>
@@ -163,6 +168,24 @@
                         </div>
                     </div>
                 </div>
+
+                <div v-if="selectedEntity.technical_debt?.length" class="border-t pt-6">
+                    <h4 class="text-sm font-semibold text-orange-600 mb-2">Débitos Técnicos ({{ selectedEntity.technical_debt.length }})</h4>
+                    <div class="space-y-2">
+                        <div v-for="(debt, idx) in selectedEntity.technical_debt" :key="idx" 
+                            class="p-3 rounded-lg border bg-orange-50 border-orange-200">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs px-1.5 py-0.5 rounded font-bold bg-orange-500 text-white">
+                                    {{ debt.severity }}
+                                </span>
+                                <span class="text-sm font-medium text-slate-700">{{ debt.type }}</span>
+                                <span v-if="debt.category" class="text-xs text-slate-400">[{{ debt.category }}]</span>
+                            </div>
+                            <p v-if="debt.line" class="text-xs text-slate-500">Linha {{ debt.line }}</p>
+                            <code v-if="debt.code" class="block mt-1 text-xs bg-white p-1 rounded border text-slate-600 overflow-x-auto whitespace-pre-wrap">{{ debt.code }}</code>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div v-else class="h-full flex items-center justify-center text-slate-400">
                 <div class="text-center">
@@ -224,6 +247,10 @@ const filteredEntities = computed(() => {
 
 const vulnCount = computed(() => {
     return filteredEntities.value.filter(e => e.vulnerabilities?.length).length;
+});
+
+const debtCount = computed(() => {
+    return filteredEntities.value.filter(e => e.technical_debt?.length).length;
 });
 
 const groupedEntities = computed(() => {

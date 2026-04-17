@@ -68,6 +68,47 @@ class ApiController extends Controller
         return response()->json($entities);
     }
 
+    public function technicalDebt(Repository $repository, Request $request): JsonResponse
+    {
+        $severity = $request->input('severity');
+
+        $query = $repository->codeEntities()
+            ->whereNotNull('technical_debt')
+            ->where('technical_debt', '!=', '[]')
+            ->select('id', 'name', 'file_path', 'language', 'technical_debt');
+
+        if ($severity) {
+            $query->whereJsonContains('technical_debt', ['severity' => $severity]);
+        }
+
+        $entities = $query->get();
+
+        $grouped = $entities->flatMap(function ($entity) {
+            return collect($entity->technical_debt)->map(function ($debt) use ($entity) {
+                return [
+                    'entity_id' => $entity->id,
+                    'entity_name' => $entity->name,
+                    'file_path' => $entity->file_path,
+                    'language' => $entity->language,
+                    'type' => $debt['type'] ?? null,
+                    'severity' => $debt['severity'] ?? null,
+                    'category' => $debt['category'] ?? null,
+                    'cwe_id' => $debt['cwe_id'] ?? null,
+                    'line' => $debt['line'] ?? null,
+                    'code' => $debt['code'] ?? null,
+                ];
+            });
+        });
+
+        $sorted = $grouped->sortBy(function ($item) {
+            $order = ['HIGH' => 0, 'MEDIUM' => 1, 'LOW' => 2];
+
+            return $order[$item['severity']] ?? 3;
+        })->values();
+
+        return response()->json($sorted);
+    }
+
     public function vulnerabilities(Repository $repository, Request $request): JsonResponse
     {
         $severity = $request->input('severity');
