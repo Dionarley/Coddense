@@ -19,20 +19,29 @@ class TypeScriptParser implements LanguageParserInterface
         $code = file_get_contents($filePath);
         $entities = [];
 
-        preg_match_all('/(?:export\s+)?(?:default\s+)?(?:interface\s+(\w+)|type\s+(\w+)|enum\s+(\w+)|function\s+(\w+)|class\s+(\w+)|const\s+(\w+)\s*[=:]/)', $code, $matches, PREG_SET_ORDER);
+        preg_match_all('/export\s+interface\s+(\w+)/', $code, $interfaces);
+        foreach ($interfaces[1] as $name) {
+            $entities[] = ['type' => 'interface', 'name' => $name, 'namespace' => null, 'file_path' => $filePath];
+        }
 
-        foreach ($matches as $match) {
-            $name = $match[1] ?? $match[2] ?? $match[3] ?? $match[4] ?? $match[5] ?? $match[6] ?? null;
-            if ($name) {
-                $type = isset($match[1]) ? 'interface' : (isset($match[2]) ? 'type' : (isset($match[3]) ? 'enum' : (isset($match[5]) ? 'class' : 'function')));
-                $entities[] = [
-                    'type' => $type,
-                    'name' => $name,
-                    'namespace' => null,
-                    'file_path' => $filePath,
-                    'details' => ['category' => $type],
-                ];
-            }
+        preg_match_all('/type\s+(\w+)\s*=/', $code, $types);
+        foreach ($types[1] as $name) {
+            $entities[] = ['type' => 'type', 'name' => $name, 'namespace' => null, 'file_path' => $filePath];
+        }
+
+        preg_match_all('/enum\s+(\w+)/', $code, $enums);
+        foreach ($enums[1] as $name) {
+            $entities[] = ['type' => 'enum', 'name' => $name, 'namespace' => null, 'file_path' => $filePath];
+        }
+
+        preg_match_all('/function\s+(\w+)/', $code, $functions);
+        foreach ($functions[1] as $name) {
+            $entities[] = ['type' => 'function', 'name' => $name, 'namespace' => null, 'file_path' => $filePath];
+        }
+
+        preg_match_all('/class\s+(\w+)/', $code, $classes);
+        foreach ($classes[1] as $name) {
+            $entities[] = ['type' => 'class', 'name' => $name, 'namespace' => null, 'file_path' => $filePath];
         }
 
         return $entities;
