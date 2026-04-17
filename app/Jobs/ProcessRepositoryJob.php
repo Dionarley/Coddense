@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Repository;
 use App\Services\ParserFactory;
+use App\Services\VulnerabilityScanner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
